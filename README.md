@@ -6,7 +6,7 @@
 
 1. **Клонируйте проект:**
    ```bash
-   git clone https://github.com/monkeprogrammer01/SenimTest.git](https://github.com/monkeprogrammer01/SenimTest.git
+   git clone https://github.com/monkeprogrammer01/SenimTest.git
    cd SenimTest
    ```
 
