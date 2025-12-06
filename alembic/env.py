@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core.database import Base, SQLALCHEMY_DATABASE_URL
 from user.models.user import User
-
+from report.models.report import Report
 config = context.config
 
 config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)

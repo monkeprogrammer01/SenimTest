@@ -10,17 +10,17 @@ from core.database import get_db
 from user.services.user_service import get_user
 from fastapi.security import OAuth2PasswordBearer
 import jwt
-from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from user.models.user import User
 
-SECRET_KEY = settings.JWT_SECRET_KEY
+SECRET_KEY = settings.JWT_SECRET_KEY.strip()
 ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-def authenticate_user(user_id: int, password: str, db: Session = Depends(get_db)):
-    user = get_user(db, user_id)
+def authenticate_user(email: str, password: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
     if not user:
         return False
     if not verify_password(password, user.password):
@@ -42,22 +42,26 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail=f"Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if user_id is None:
+        sub = payload.get("sub")
+        if sub is None:
             raise credentials_exception
+        user_id = int(sub)
         token_data = TokenData(id=user_id)
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except InvalidTokenError:
         raise credentials_exception
     user = get_user(db, user_id=token_data.id)
     if user is None:
         raise credentials_exception
     return user
-
-
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    return current_user
